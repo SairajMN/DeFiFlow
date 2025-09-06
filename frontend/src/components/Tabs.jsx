@@ -1,20 +1,28 @@
 import { useState } from 'react'
 import { ethers } from 'ethers'
-import { getSigner } from '../lib/ethers'
+import { getSigner, getProvider } from '../lib/ethers'
 import { addresses } from '../lib/addresses'
 import { abis } from '../lib/format'
+import {
+  delegatedDeposit,
+  delegatedWithdraw,
+  getUserNonce,
+  getDeadline
+} from '../lib/delegatedSigning'
 
-function Tabs({ onUpdate }) {
+function Tabs({ onUpdate, selectedNetwork }) {
   const [activeTab, setActiveTab] = useState('borrow')
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const networkAddresses = addresses[selectedNetwork]
 
   // EIP-712 domain for LendingPool
   const domain = {
     name: 'LendingPool',
     version: '1',
-    chainId: 1043, // BlockDAG chain ID
-    verifyingContract: addresses.lendingPool
+    chainId: selectedNetwork === 'blockdag' ? 1043 : selectedNetwork === 'sepolia' ? 11155111 : 1,
+    verifyingContract: networkAddresses.lendingPool
   }
 
   // EIP-712 types
@@ -39,71 +47,92 @@ function Tabs({ onUpdate }) {
 
       switch (action) {
         case 'deposit':
-          contract = new ethers.Contract(addresses.rwa, abis.rwa, signer)
-          tx = await contract.approve(addresses.vault, ethers.parseEther(amount))
+          contract = new ethers.Contract(networkAddresses.rwa, abis.rwa, signer)
+          tx = await contract.approve(networkAddresses.vault, ethers.parseEther(amount))
           await tx.wait()
-          contract = new ethers.Contract(addresses.vault, abis.vault, signer)
+          contract = new ethers.Contract(networkAddresses.vault, abis.vault, signer)
           tx = await contract.deposit(ethers.parseEther(amount))
           await tx.wait()
           break
         case 'borrow':
-          contract = new ethers.Contract(addresses.vault, abis.vault, signer)
+          contract = new ethers.Contract(networkAddresses.vault, abis.vault, signer)
           tx = await contract.borrow(ethers.parseEther(amount))
           await tx.wait()
           break
         case 'approve-lend':
-          contract = new ethers.Contract(addresses.dusd, abis.dusd, signer)
-          tx = await contract.approve(addresses.lendingPool, ethers.parseEther(amount))
+          contract = new ethers.Contract(networkAddresses.dusd, abis.dusd, signer)
+          tx = await contract.approve(networkAddresses.lendingPool, ethers.parseEther(amount))
           await tx.wait()
           break
         case 'lend':
-          // Fetch nonce from contract
-          contract = new ethers.Contract(addresses.lendingPool, abis.lendingPool, signer)
+          // Use delegated signing utilities
           const userAddress = await signer.getAddress()
-          const nonce = await contract.nonces(userAddress)
+          const relayerUrl = process.env.REACT_APP_RELAYER_URL || 'http://localhost:3001'
 
-          // Create EIP-712 message
-          const message = {
-            amount: ethers.parseEther(amount),
-            nonce: nonce,
-            deadline: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
-          }
+          // Get current nonce from relayer
+          const nonce = await getUserNonce(userAddress, relayerUrl)
 
-          // Sign the typed message
-          const signature = await signer.signTypedData(domain, types, message)
+          // Calculate deadline (30 minutes from now)
+          const deadline = getDeadline(30)
 
-          // Send to relayer backend
-          const response = await fetch('http://localhost:3001/api/deposit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              amount: amount,
-              nonce: nonce.toString(),
-              deadline: message.deadline.toString(),
-              signature: signature
-            })
-          })
+          // Execute delegated deposit
+          const result = await delegatedDeposit(
+            signer,
+            amount,
+            nonce,
+            deadline,
+            networkAddresses.lendingPool,
+            relayerUrl
+          )
 
-          if (!response.ok) {
-            throw new Error('Relayer request failed')
-          }
-
-          const result = await response.json()
           console.log('Delegated deposit successful:', result.txHash)
           break
         case 'repay':
-          contract = new ethers.Contract(addresses.dusd, abis.dusd, signer)
-          tx = await contract.approve(addresses.vault, ethers.parseEther(amount))
+          contract = new ethers.Contract(networkAddresses.dusd, abis.dusd, signer)
+          tx = await contract.approve(networkAddresses.vault, ethers.parseEther(amount))
           await tx.wait()
-          contract = new ethers.Contract(addresses.vault, abis.vault, signer)
+          contract = new ethers.Contract(networkAddresses.vault, abis.vault, signer)
           tx = await contract.repay(ethers.parseEther(amount))
           await tx.wait()
           break
         case 'withdraw':
-          contract = new ethers.Contract(addresses.vault, abis.vault, signer)
+          contract = new ethers.Contract(networkAddresses.vault, abis.vault, signer)
           tx = await contract.withdraw(ethers.parseEther(amount))
+          await tx.wait()
+          break
+        case 'getAPY':
+          contract = new ethers.Contract(networkAddresses.yieldRouter, abis.yieldRouter, getProvider())
+          const apy = await contract.getAPY()
+          alert(`Current APY: ${ethers.formatEther(apy)}%`)
+          break
+        case 'rebalance':
+          contract = new ethers.Contract(networkAddresses.yieldRouter, abis.yieldRouter, signer)
+          tx = await contract.rebalance()
+          await tx.wait()
+          break
+        case 'mintRWA':
+          contract = new ethers.Contract(networkAddresses.rwaRegistry, abis.rwaRegistry, signer)
+          tx = await contract.mintRWA(ethers.parseEther(amount))
+          await tx.wait()
+          break
+        case 'redeemRWA':
+          contract = new ethers.Contract(networkAddresses.rwaRegistry, abis.rwaRegistry, signer)
+          tx = await contract.redeemRWA(ethers.parseEther(amount))
+          await tx.wait()
+          break
+        case 'proposeChange':
+          contract = new ethers.Contract(networkAddresses.governance, abis.governance, signer)
+          tx = await contract.proposeChange(amount) // amount as description
+          await tx.wait()
+          break
+        case 'vote':
+          contract = new ethers.Contract(networkAddresses.governance, abis.governance, signer)
+          tx = await contract.vote(parseInt(amount)) // amount as proposal ID
+          await tx.wait()
+          break
+        case 'executeProposal':
+          contract = new ethers.Contract(networkAddresses.governance, abis.governance, signer)
+          tx = await contract.executeProposal(parseInt(amount)) // amount as proposal ID
           await tx.wait()
           break
       }
@@ -119,7 +148,10 @@ function Tabs({ onUpdate }) {
   const tabs = [
     { id: 'borrow', label: 'Borrow dUSD' },
     { id: 'lend', label: 'Lend dUSD' },
-    { id: 'manage', label: 'Manage Position' }
+    { id: 'manage', label: 'Manage Position' },
+    { id: 'yield', label: 'Yield Management' },
+    { id: 'rwa', label: 'RWA Registry' },
+    { id: 'governance', label: 'Governance' }
   ]
 
   return (
@@ -227,6 +259,95 @@ function Tabs({ onUpdate }) {
                   className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
                 >
                   {loading ? 'Withdrawing...' : 'Withdraw RWA'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'yield' && (
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-white">Yield Management</h3>
+              <p className="text-slate-400 mb-4">Rebalance yield strategies and view current APY</p>
+              <div className="mb-4">
+                <button
+                  onClick={() => handleAction('getAPY')}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200"
+                >
+                  Get Current APY
+                </button>
+              </div>
+              <button
+                onClick={() => handleAction('rebalance')}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+              >
+                {loading ? 'Rebalancing...' : 'Rebalance Yield'}
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'rwa' && (
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-white">RWA Registry</h3>
+              <p className="text-slate-400 mb-4">Mint or redeem Real-World Asset tokens</p>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Amount of RWA"
+                className="w-full p-3 mb-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleAction('mintRWA')}
+                  disabled={loading || !amount}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  {loading ? 'Minting...' : 'Mint RWA'}
+                </button>
+                <button
+                  onClick={() => handleAction('redeemRWA')}
+                  disabled={loading || !amount}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  {loading ? 'Redeeming...' : 'Redeem RWA'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'governance' && (
+            <div>
+              <h3 className="text-xl font-bold mb-4 text-white">Governance</h3>
+              <p className="text-slate-400 mb-4">Propose changes, vote on proposals, or execute approved proposals</p>
+              <input
+                type="text"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Proposal description or ID"
+                className="w-full p-3 mb-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-blue-400 focus:outline-none"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleAction('proposeChange')}
+                  disabled={loading || !amount}
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  {loading ? 'Proposing...' : 'Propose Change'}
+                </button>
+                <button
+                  onClick={() => handleAction('vote')}
+                  disabled={loading || !amount}
+                  className="flex-1 bg-pink-600 hover:bg-pink-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  {loading ? 'Voting...' : 'Vote'}
+                </button>
+                <button
+                  onClick={() => handleAction('executeProposal')}
+                  disabled={loading || !amount}
+                  className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  {loading ? 'Executing...' : 'Execute Proposal'}
                 </button>
               </div>
             </div>

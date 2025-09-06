@@ -3,7 +3,7 @@ import ConnectButton from './components/ConnectButton'
 import Tabs from './components/Tabs'
 import Stat from './components/Stat'
 import { ethers } from 'ethers'
-import { getProvider, getSigner, connectWallet } from './lib/ethers'
+import { getProvider, getSigner, connectWallet, setNetwork } from './lib/ethers'
 import { addresses } from './lib/addresses'
 import { abis } from './lib/format'
 
@@ -22,6 +22,7 @@ function App() {
   const [username, setUsername] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [pendingConnection, setPendingConnection] = useState(false)
+  const [selectedNetwork, setSelectedNetwork] = useState('blockdag')
 
   const initiateWalletConnection = async () => {
     setShowUsernameModal(true)
@@ -95,14 +96,22 @@ function App() {
     setShowBridgeModal(false)
   }
 
+  const handleNetworkChange = async (network) => {
+    setSelectedNetwork(network)
+    setNetwork(network)
+    // Disconnect wallet when switching networks
+    disconnectWallet()
+  }
+
   const updateBalances = async () => {
     if (!account) return
     try {
       const provider = getProvider()
-      const rwaContract = new ethers.Contract(addresses.rwa, abis.rwa, provider)
-      const dusdContract = new ethers.Contract(addresses.dusd, abis.dusd, provider)
-      const vaultContract = new ethers.Contract(addresses.vault, abis.vault, provider)
-      const lendingPoolContract = new ethers.Contract(addresses.lendingPool, abis.lendingPool, provider)
+      const networkAddresses = addresses[selectedNetwork]
+      const rwaContract = new ethers.Contract(networkAddresses.rwa, abis.rwa, provider)
+      const dusdContract = new ethers.Contract(networkAddresses.dusd, abis.dusd, provider)
+      const vaultContract = new ethers.Contract(networkAddresses.vault, abis.vault, provider)
+      const lendingPoolContract = new ethers.Contract(networkAddresses.lendingPool, abis.lendingPool, provider)
 
       const rwaBalance = await rwaContract.balanceOf(account)
       const dusdBalance = await dusdContract.balanceOf(account)
@@ -131,24 +140,25 @@ function App() {
     setBridgeLoading(true)
     try {
       const signer = await getSigner()
+      const networkAddresses = addresses[selectedNetwork]
       let contract, tx
 
       if (assetType === 'rwa') {
-        contract = new ethers.Contract(addresses.rwa, abis.rwa, signer)
+        contract = new ethers.Contract(networkAddresses.rwa, abis.rwa, signer)
         tx = await contract.approve('0x1234567890123456789012345678901234567890', ethers.parseEther(bridgeAmount)) // Mock bridge contract
         await tx.wait()
         // Simulate bridge transaction
         setBridgeTxHash('0x' + Math.random().toString(16).substr(2, 64))
       } else if (assetType === 'dusd') {
-        contract = new ethers.Contract(addresses.dusd, abis.dusd, signer)
+        contract = new ethers.Contract(networkAddresses.dusd, abis.dusd, signer)
         tx = await contract.approve('0x1234567890123456789012345678901234567890', ethers.parseEther(bridgeAmount)) // Mock bridge contract
         await tx.wait()
         // Simulate bridge transaction
         setBridgeTxHash('0x' + Math.random().toString(16).substr(2, 64))
       } else if (assetType === 'multi') {
         // Multi-asset bridge - approve both tokens
-        const rwaContract = new ethers.Contract(addresses.rwa, abis.rwa, signer)
-        const dusdContract = new ethers.Contract(addresses.dusd, abis.dusd, signer)
+        const rwaContract = new ethers.Contract(networkAddresses.rwa, abis.rwa, signer)
+        const dusdContract = new ethers.Contract(networkAddresses.dusd, abis.dusd, signer)
 
         const rwaTx = await rwaContract.approve('0x1234567890123456789012345678901234567890', ethers.parseEther(bridgeAmount))
         await rwaTx.wait()
@@ -195,7 +205,16 @@ function App() {
               <p className="text-sm text-slate-400">Liquid RWA Credit Network</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-xs text-slate-400">BlockDAG Network</div>
+              <select
+                value={selectedNetwork}
+                onChange={(e) => handleNetworkChange(e.target.value)}
+                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1 text-sm text-white focus:border-blue-400 focus:outline-none"
+              >
+                <option value="hardhat">Hardhat (Local)</option>
+                <option value="blockdag">BlockDAG (Testnet)</option>
+                <option value="sepolia">Sepolia (Testnet)</option>
+                <option value="mainnet">Ethereum Mainnet</option>
+              </select>
               <ConnectButton
                 onConnect={initiateWalletConnection}
                 account={account}
@@ -217,7 +236,7 @@ function App() {
             </h2>
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
               Deposit tokenized real-world assets as collateral, borrow dUSD stablecoins,
-              and earn yield by lending in the pool - all on BlockDAG.
+              and earn yield by lending in the pool - all on {selectedNetwork === 'blockdag' ? 'BlockDAG' : selectedNetwork === 'sepolia' ? 'Sepolia Testnet' : 'Ethereum Mainnet'}.
             </p>
             <div className="flex justify-center gap-4">
               <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
@@ -280,7 +299,7 @@ function App() {
             </div>
 
             {/* Action Tabs */}
-            <Tabs onUpdate={updateBalances} />
+            <Tabs onUpdate={updateBalances} selectedNetwork={selectedNetwork} />
           </>
         )}
 
@@ -371,7 +390,7 @@ function App() {
         {/* Footer */}
         <div className="text-center mt-12 pt-8 border-t border-slate-700">
           <div className="flex justify-center gap-6 mb-4">
-            <div className="text-sm text-slate-400">Built on BlockDAG</div>
+            <div className="text-sm text-slate-400">Built on {selectedNetwork === 'blockdag' ? 'BlockDAG' : selectedNetwork === 'sepolia' ? 'Sepolia Testnet' : 'Ethereum Mainnet'}</div>
             <div className="text-sm text-slate-400">EVM Compatible</div>
             <div className="text-sm text-slate-400">Real-World Assets</div>
           </div>
