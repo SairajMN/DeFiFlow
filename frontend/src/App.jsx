@@ -4,6 +4,7 @@ import Tabs from './components/Tabs'
 import { ethers } from 'ethers'
 import { getProvider, getSigner } from './lib/ethers'
 import { addresses } from './lib/addresses'
+import logo from './assets/logo.png'
 
 function App() {
   const [account, setAccount] = useState(null)
@@ -161,11 +162,7 @@ function App() {
           <div className="flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
+              <img src={logo} alt="DeFiFlow Logo" className="w-10 h-10 rounded-lg" />
               <div>
                 <h1 className="text-xl font-bold text-white">DeFiFlow</h1>
                 <p className="text-xs text-slate-400">Where Real Assets Meet Smart DeFi</p>

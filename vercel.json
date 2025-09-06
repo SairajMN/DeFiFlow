@@ -25,10 +25,10 @@
     }
   ],
   "env": {
-    "VITE_BLOCKDAG_RPC_URL": "@vite_blockdag_rpc_url",
-    "VITE_LENDINGPOOL_ADDRESS": "@vite_lendingpool_address",
-    "VITE_YIELDROUTER_ADDRESS": "@vite_yieldrouter_address",
-    "VITE_RWAREGISTRY_ADDRESS": "@vite_rwaregistry_address",
-    "VITE_GOVERNANCE_ADDRESS": "@vite_governance_address"
+    "VITE_BLOCKDAG_RPC_URL": "https://rpc.primordial.bdagscan.com",
+    "VITE_LENDINGPOOL_ADDRESS": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "VITE_YIELDROUTER_ADDRESS": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "VITE_RWAREGISTRY_ADDRESS": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+    "VITE_GOVERNANCE_ADDRESS": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
   }
 }
