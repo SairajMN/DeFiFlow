@@ -1,7 +1,30 @@
 import { ethers } from 'ethers'
 
-const BLOCKDAG_CHAIN_ID = 1043 // BlockDAG Primordial chain ID
+const NETWORKS = {
+  blockdag: {
+    chainId: 1043,
+    chainName: 'BlockDAG Primordial',
+    nativeCurrency: { name: 'BDAG', symbol: 'BDAG', decimals: 18 },
+    rpcUrls: ['https://rpc.primordial.bdagscan.com'],
+    blockExplorerUrls: ['https://bdagscan.com']
+  },
+  sepolia: {
+    chainId: 11155111,
+    chainName: 'Sepolia Testnet',
+    nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://sepolia.infura.io/v3/'],
+    blockExplorerUrls: ['https://sepolia.etherscan.io']
+  },
+  mainnet: {
+    chainId: 1,
+    chainName: 'Ethereum Mainnet',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://mainnet.infura.io/v3/'],
+    blockExplorerUrls: ['https://etherscan.io']
+  }
+}
 
+let currentNetwork = 'blockdag'
 let provider
 let signer
 
@@ -31,18 +54,26 @@ export async function connectWallet() {
   }
 }
 
+export function setNetwork(network) {
+  currentNetwork = network
+  // Reset provider and signer when network changes
+  provider = null
+  signer = null
+}
+
 export async function getSigner() {
   if (!signer) {
     const prov = getProvider()
     signer = await prov.getSigner()
     const network = await prov.getNetwork()
+    const targetNetwork = NETWORKS[currentNetwork]
 
-    if (network.chainId !== BigInt(BLOCKDAG_CHAIN_ID)) {
+    if (network.chainId !== BigInt(targetNetwork.chainId)) {
       try {
-        // Try to switch to BlockDAG network
+        // Try to switch to the selected network
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${BLOCKDAG_CHAIN_ID.toString(16)}` }]
+          params: [{ chainId: `0x${targetNetwork.chainId.toString(16)}` }]
         })
       } catch (switchError) {
         // If network doesn't exist, try to add it
@@ -51,24 +82,20 @@ export async function getSigner() {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [{
-                chainId: `0x${BLOCKDAG_CHAIN_ID.toString(16)}`,
-                chainName: 'BlockDAG Primordial',
-                nativeCurrency: {
-                  name: 'BDAG',
-                  symbol: 'BDAG',
-                  decimals: 18
-                },
-                rpcUrls: ['https://rpc.primordial.bdagscan.com'],
-                blockExplorerUrls: ['https://bdagscan.com']
+                chainId: `0x${targetNetwork.chainId.toString(16)}`,
+                chainName: targetNetwork.chainName,
+                nativeCurrency: targetNetwork.nativeCurrency,
+                rpcUrls: targetNetwork.rpcUrls,
+                blockExplorerUrls: targetNetwork.blockExplorerUrls
               }]
             })
           } catch (addError) {
-            console.error('Failed to add BlockDAG network:', addError)
-            throw new Error('Please add BlockDAG network to your wallet manually')
+            console.error(`Failed to add ${targetNetwork.chainName} network:`, addError)
+            throw new Error(`Please add ${targetNetwork.chainName} network to your wallet manually`)
           }
         } else {
-          console.error('Failed to switch to BlockDAG network:', switchError)
-          throw new Error('Please switch to BlockDAG network in your wallet')
+          console.error(`Failed to switch to ${targetNetwork.chainName} network:`, switchError)
+          throw new Error(`Please switch to ${targetNetwork.chainName} network in your wallet`)
         }
       }
     }

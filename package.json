@@ -6,7 +6,15 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat run script/deploy.js"
+    "deploy": "hardhat run script/deploy.js",
+    "deploy:all": "hardhat run script/deploy-all.js",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "relayer:start": "cd relayer && npm start",
+    "build:desktop": "cd desktop && npm install && npm run build",
+    "desktop:dev": "cd desktop && npm install && npm start",
+    "build:mobile": "cd frontend && npm run build && cd ../mobile && npx cap sync",
+    "mobile:dev": "cd frontend && npm run dev"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
