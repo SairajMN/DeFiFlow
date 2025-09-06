@@ -2,10 +2,9 @@ import CollateralVaultABI from './abis/CollateralVault.json'
 import LendingPoolABI from './abis/LendingPool.json'
 import DUSDABI from './abis/DUSD.json'
 import RWAAssetTokenABI from './abis/RWAAssetToken.json'
-// Add placeholders for additional ABIs - replace with actual compiled ABIs
-const YieldRouterABI = [] // TODO: Add actual ABI
-const RWARegistryABI = [] // TODO: Add actual ABI
-const GovernanceABI = [] // TODO: Add actual ABI
+import YieldRouterABI from './abis/YieldRouter.json'
+import RWARegistryABI from './abis/RWARegistry.json'
+import GovernanceABI from './abis/Governance.json'
 
 export const abis = {
   vault: CollateralVaultABI,
@@ -15,4 +14,4 @@ export const abis = {
   yieldRouter: YieldRouterABI,
   rwaRegistry: RWARegistryABI,
   governance: GovernanceABI
-}
+};

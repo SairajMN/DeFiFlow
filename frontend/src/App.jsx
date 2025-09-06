@@ -287,6 +287,14 @@ function App() {
           </section>
         )}
 
+        {/* RWA Registry & Actions */}
+        {account && (
+          <section id="earn" className="mb-16">
+            <h2 className="text-2xl font-bold text-white mb-8 text-center">RWA Registry & Actions</h2>
+            <Tabs onUpdate={updateBalances} selectedNetwork={selectedNetwork} />
+          </section>
+        )}
+
         {/* Asset Markets Table */}
         <section id="markets" className="mb-16">
           <h2 className="text-2xl font-bold text-white mb-8 text-center">Available Markets</h2>
@@ -300,7 +308,7 @@ function App() {
               <h3 className="text-xl font-semibold text-white mb-2">No Markets Available</h3>
               <p className="text-slate-400 text-sm max-w-md mx-auto">
                 Markets will be displayed here once they are configured and deployed on the network.
-                Connect your wallet to interact with available RWA assets.
+                Use the RWA Registry tab above to mint and manage your RWA tokens.
               </p>
               {!account && (
                 <button
