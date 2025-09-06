@@ -28,7 +28,13 @@ describe("CollateralVault", function () {
     await vault.waitForDeployment();
 
     await dusd.setVault(await vault.getAddress());
-    await rwa.mint(user.address, ethers.parseEther("1000"));
+    await rwa.mintAsset(user.address, ethers.parseEther("1000"), "test-ipfs-cid", "Test RWA", "Test Description", 1000000, ethers.ZeroHash);
+
+    // Whitelist accounts for RWA transfers
+    await rwa.updateWhitelist(user.address, true);
+    await rwa.updateWhitelist(await vault.getAddress(), true);
+    await rwa.updateKYC(user.address, true);
+    await rwa.updateKYC(await vault.getAddress(), true);
   });
 
   it("should deposit RWA", async function () {

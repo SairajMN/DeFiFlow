@@ -1,4 +1,6 @@
 const { ethers } = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -44,6 +46,24 @@ async function main() {
   await lendingPool.waitForDeployment();
   console.log("LendingPool deployed to:", await lendingPool.getAddress());
 
+  // Deploy YieldRouter
+  const YieldRouter = await ethers.getContractFactory("YieldRouter");
+  const yieldRouter = await YieldRouter.deploy(await dusd.getAddress());
+  await yieldRouter.waitForDeployment();
+  console.log("YieldRouter deployed to:", await yieldRouter.getAddress());
+
+  // Deploy RWARegistry
+  const RWARegistry = await ethers.getContractFactory("RWARegistry");
+  const rwaRegistry = await RWARegistry.deploy(await rwa.getAddress());
+  await rwaRegistry.waitForDeployment();
+  console.log("RWARegistry deployed to:", await rwaRegistry.getAddress());
+
+  // Deploy Governance
+  const Governance = await ethers.getContractFactory("Governance");
+  const governance = await Governance.deploy();
+  await governance.waitForDeployment();
+  console.log("Governance deployed to:", await governance.getAddress());
+
   // Seed demo
   await rwa.mint(deployer.address, ethers.parseEther("100000"));
   console.log("Minted 100000 RWA to deployer");
@@ -55,6 +75,27 @@ async function main() {
   console.log("Oracle:", await oracle.getAddress());
   console.log("Vault:", await vault.getAddress());
   console.log("LendingPool:", await lendingPool.getAddress());
+  console.log("YieldRouter:", await yieldRouter.getAddress());
+  console.log("RWARegistry:", await rwaRegistry.getAddress());
+  console.log("Governance:", await governance.getAddress());
+
+  // Auto-inject addresses into .env
+  const envPath = path.join(__dirname, '..', '.env');
+  const envContent = `
+RPC_URL=https://rpc.primordial.bdagscan.com
+CHAIN_ID=1043
+INFURA_API_KEY=8cc9eb274556489a90980d5d81faa285
+
+# Frontend Environment Variables
+VITE_BLOCKDAG_RPC_URL=https://rpc.primordial.bdagscan.com
+VITE_LENDINGPOOL_ADDRESS=${await lendingPool.getAddress()}
+VITE_YIELDROUTER_ADDRESS=${await yieldRouter.getAddress()}
+VITE_RWAREGISTRY_ADDRESS=${await rwaRegistry.getAddress()}
+VITE_GOVERNANCE_ADDRESS=${await governance.getAddress()}
+`;
+
+  fs.writeFileSync(envPath, envContent.trim());
+  console.log("Addresses injected into .env file");
 }
 
 main().catch((error) => {

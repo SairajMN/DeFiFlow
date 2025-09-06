@@ -1,0 +1,34 @@
+{
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "npm install && cd frontend && npm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "VITE_BLOCKDAG_RPC_URL": "@vite_blockdag_rpc_url",
+    "VITE_LENDINGPOOL_ADDRESS": "@vite_lendingpool_address",
+    "VITE_YIELDROUTER_ADDRESS": "@vite_yieldrouter_address",
+    "VITE_RWAREGISTRY_ADDRESS": "@vite_rwaregistry_address",
+    "VITE_GOVERNANCE_ADDRESS": "@vite_governance_address"
+  }
+}
