@@ -9,6 +9,28 @@ function Tabs({ onUpdate }) {
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // EIP-712 domain for LendingPool
+  const domain = {
+    name: 'LendingPool',
+    version: '1',
+    chainId: 1043, // BlockDAG chain ID
+    verifyingContract: addresses.lendingPool
+  }
+
+  // EIP-712 types
+  const types = {
+    DepositAction: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' }
+    ],
+    WithdrawAction: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' }
+    ]
+  }
+
   const handleAction = async (action) => {
     setLoading(true)
     try {
@@ -35,9 +57,41 @@ function Tabs({ onUpdate }) {
           await tx.wait()
           break
         case 'lend':
+          // Fetch nonce from contract
           contract = new ethers.Contract(addresses.lendingPool, abis.lendingPool, signer)
-          tx = await contract.deposit(ethers.parseEther(amount))
-          await tx.wait()
+          const userAddress = await signer.getAddress()
+          const nonce = await contract.nonces(userAddress)
+
+          // Create EIP-712 message
+          const message = {
+            amount: ethers.parseEther(amount),
+            nonce: nonce,
+            deadline: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+          }
+
+          // Sign the typed message
+          const signature = await signer.signTypedData(domain, types, message)
+
+          // Send to relayer backend
+          const response = await fetch('http://localhost:3001/api/deposit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              amount: amount,
+              nonce: nonce.toString(),
+              deadline: message.deadline.toString(),
+              signature: signature
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error('Relayer request failed')
+          }
+
+          const result = await response.json()
+          console.log('Delegated deposit successful:', result.txHash)
           break
         case 'repay':
           contract = new ethers.Contract(addresses.dusd, abis.dusd, signer)
