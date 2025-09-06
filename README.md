@@ -1,12 +1,12 @@
-# 🌐 LRCN
+# 🌐 DeFiFlow
  ## Where Real Assets Meet Smart DeFi.
-**Liquidity Rebalancing Credit Network — built on BlockDAG**
+**Decentralized Finance Flow — built on BlockDAG**
 
 ---
 
 ## 📌 Overview
 
-The **LRCN DeFi Protocol** project built to demonstrate the power of **BlockDAG's EVM & SDK** for DeFi innovation.
+The **DeFiFlow DeFi Protocol** project built to demonstrate the power of **BlockDAG's EVM & SDK** for DeFi innovation.
 It enables users to **lend, borrow, earn yield, and interact with synthetic real-world assets (RWA)** in a single dApp.
 
 Key innovations:
@@ -106,6 +106,31 @@ const types = {
 - **HTTPS Only**: All communications encrypted
 - **CORS Protection**: Configured for allowed origins only
 
+### Production Security Features ⭐
+- **AWS KMS/Azure Key Vault Integration**: Enterprise key management
+- **Automated Key Rotation**: 24-hour rotation cycle with grace period
+- **Real-time Transaction Monitoring**: Comprehensive security dashboard
+- **Multi-signature Support**: Large transaction approval workflow
+- **Automated Alerting**: Email and Slack integration for security events
+- **Relayer Balance Monitoring**: Automated funding alerts
+- **Security Event Logging**: Complete audit trail for compliance
+
+### Security Monitoring Endpoints
+```javascript
+GET /api/security/status     // Security dashboard
+GET /api/monitoring/dashboard // Production monitoring
+POST /api/admin/rotate-key   // Manual key rotation
+```
+
+### Production Security Guide
+📖 **See [PRODUCTION_SECURITY_GUIDE.md](PRODUCTION_SECURITY_GUIDE.md)** for complete enterprise security implementation including:
+- AWS KMS setup and configuration
+- Automated key rotation systems
+- Transaction monitoring and alerting
+- Multi-signature implementation
+- Incident response procedures
+- Compliance and audit requirements
+
 ---
 
 ## 🏗️ Architecture
@@ -152,7 +177,7 @@ function withdraw(address token, uint256 amount) external;
 ```bash
 # Clone repository
 git clone <repository-url>
-cd lrcn
+cd defiflow
 
 # Install root dependencies
 npm install

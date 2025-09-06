@@ -1,7 +1,7 @@
 {
-  "name": "lrcn-defi",
+  "name": "defiflow-defi",
   "version": "1.0.0",
-  "description": "Liquid RWA Credit Network on BlockDAG",
+  "description": "DeFiFlow - Where Real Assets Meet Smart DeFi",
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",

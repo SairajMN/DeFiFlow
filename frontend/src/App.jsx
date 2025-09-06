@@ -167,8 +167,8 @@ function App() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">LRCN</h1>
-                <p className="text-xs text-slate-400">Liquid RWA Credit Network</p>
+                <h1 className="text-xl font-bold text-white">DeFiFlow</h1>
+                <p className="text-xs text-slate-400">Where Real Assets Meet Smart DeFi</p>
               </div>
             </div>
 
@@ -334,10 +334,10 @@ function App() {
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
                 </div>
-                <span className="text-xl font-bold text-white">LRCN</span>
+                <span className="text-xl font-bold text-white">DeFiFlow</span>
               </div>
               <p className="text-slate-400 text-sm">
-                Empowering DeFi with real-world assets on BlockDAG.
+                Where Real Assets Meet Smart DeFi on BlockDAG.
               </p>
             </div>
             <div>
@@ -380,7 +380,7 @@ function App() {
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400 text-sm">
-            <p>&copy; 2025 LRCN - Liquid RWA Credit Network. All rights reserved.</p>
+            <p>&copy; 2025 DeFiFlow - Where Real Assets Meet Smart DeFi. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -481,7 +481,7 @@ function App() {
           <div className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-700">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-white">Learn More About LRCN</h3>
+                <h3 className="text-xl font-bold text-white">Learn More About DeFiFlow</h3>
                 <button
                   onClick={() => setShowLearnMoreModal(false)}
                   className="text-slate-400 hover:text-white text-2xl"
@@ -512,9 +512,9 @@ function App() {
                 </div>
 
                 <div className="bg-slate-700/30 rounded-lg p-4">
-                  <h5 className="font-semibold text-white mb-2">How LRCN Works</h5>
+                  <h5 className="font-semibold text-white mb-2">How DeFiFlow Works</h5>
                   <p className="text-slate-300 text-sm">
-                    LRCN allows users to deposit tokenized RWAs as collateral and borrow dUSD stablecoins against them.
+                    DeFiFlow allows users to deposit tokenized RWAs as collateral and borrow dUSD stablecoins against them.
                     This provides liquidity to RWA holders while enabling borrowing at competitive rates. The platform
                     also offers yield farming opportunities for dUSD lenders.
                   </p>
@@ -545,7 +545,7 @@ function App() {
                 <div className="bg-slate-700/30 rounded-lg p-4">
                   <h5 className="font-semibold text-white mb-2">Security & Compliance</h5>
                   <p className="text-slate-300 text-sm">
-                    LRCN implements industry-standard security practices including multi-signature wallets,
+                    DeFiFlow implements industry-standard security practices including multi-signature wallets,
                     regular audits, and compliance with relevant regulations. All smart contracts are thoroughly
                     tested and verified on multiple blockchain networks.
                   </p>

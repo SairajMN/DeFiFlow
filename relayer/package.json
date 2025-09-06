@@ -1,7 +1,7 @@
 {
-  "name": "lrcn-relayer",
+  "name": "defiflow-relayer",
   "version": "1.0.0",
-  "description": "Relayer service for delegated signing in LRCN DeFi Protocol",
+  "description": "Relayer service for delegated signing in DeFiFlow DeFi Protocol",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

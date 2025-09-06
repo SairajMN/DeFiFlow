@@ -64,26 +64,47 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         _grantRole(BURNER_ROLE, msg.sender);
     }
 
+    /// @notice Modifier to restrict access to compliance officer functions
+    /// @dev Reverts if caller does not have COMPLIANCE_ROLE
     modifier onlyCompliance() {
         require(hasRole(COMPLIANCE_ROLE, msg.sender), "Caller is not compliance officer");
         _;
     }
 
+    /// @notice Modifier to check if account is not frozen
+    /// @param account The address to check
+    /// @dev Reverts if the account is frozen
     modifier notFrozen(address account) {
         require(!frozenAccounts[account], "Account is frozen");
         _;
     }
 
+    /// @notice Modifier to check if account is whitelisted
+    /// @param account The address to check
+    /// @dev Reverts if account is not whitelisted and caller is not compliance officer
     modifier onlyWhitelisted(address account) {
         require(whitelist[account] || hasRole(COMPLIANCE_ROLE, msg.sender), "Account not whitelisted");
         _;
     }
 
+    /// @notice Modifier to check if account has valid KYC
+    /// @param account The address to check
+    /// @dev Reverts if KYC is expired or not verified
     modifier kycValid(address account) {
         require(kycVerified[account] && block.timestamp <= kycExpiry[account], "KYC expired or not verified");
         _;
     }
 
+    /// @notice Mints a new RWA asset token
+    /// @param to The address to receive the minted tokens
+    /// @param amount The amount of tokens to mint
+    /// @param ipfsCid The IPFS content identifier for the asset metadata
+    /// @param name The name of the asset
+    /// @param description The description of the asset
+    /// @param valuation The valuation of the asset in USD cents
+    /// @param merkleRoot The merkle root for batch attestations (optional)
+    /// @return The ID of the newly created asset
+    /// @dev Only callable by addresses with MINTER_ROLE
     function mintAsset(
         address to,
         uint256 amount,
@@ -114,6 +135,11 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         return assetId;
     }
 
+    /// @notice Burns RWA asset tokens from a specified address
+    /// @param assetId The ID of the asset being burned
+    /// @param from The address from which to burn tokens
+    /// @param amount The amount of tokens to burn
+    /// @dev Only callable by addresses with BURNER_ROLE
     function burnAsset(uint256 assetId, address from, uint256 amount) external onlyRole(BURNER_ROLE) {
         require(amount > 0, "Amount must be greater than 0");
         require(balanceOf(from) >= amount, "Insufficient balance");
@@ -122,6 +148,12 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         emit AssetBurned(assetId, from, amount);
     }
 
+    /// @notice Adds an attestation document to an existing asset
+    /// @param assetId The ID of the asset to add attestation to
+    /// @param documentHash The hash of the attestation document
+    /// @param ipfsCid The IPFS content identifier for the attestation
+    /// @param merkleProof The merkle proof for batch verification (if applicable)
+    /// @dev Only callable by addresses with COMPLIANCE_ROLE
     function addAttestation(
         uint256 assetId,
         bytes32 documentHash,
@@ -146,6 +178,11 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         emit AttestationAdded(assetId, documentHash, msg.sender);
     }
 
+    /// @notice Transfers tokens to a specified address with compliance checks
+    /// @param to The address to transfer tokens to
+    /// @param amount The amount of tokens to transfer
+    /// @return A boolean value indicating whether the operation succeeded
+    /// @dev Overrides ERC20 transfer with additional compliance checks
     function transfer(address to, uint256 amount)
         public
         override
@@ -160,6 +197,12 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         return super.transfer(to, amount);
     }
 
+    /// @notice Transfers tokens from one address to another with compliance checks
+    /// @param from The address to transfer tokens from
+    /// @param to The address to transfer tokens to
+    /// @param amount The amount of tokens to transfer
+    /// @return A boolean value indicating whether the operation succeeded
+    /// @dev Overrides ERC20 transferFrom with additional compliance checks
     function transferFrom(address from, address to, uint256 amount)
         public
         override
@@ -175,21 +218,35 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
     }
 
     // Compliance functions
+    /// @notice Freezes an account to prevent transfers
+    /// @param account The address to freeze
+    /// @dev Only callable by compliance officers
     function freezeAccount(address account) external onlyCompliance {
         frozenAccounts[account] = true;
         emit AccountFrozen(account);
     }
 
+    /// @notice Unfreezes a previously frozen account
+    /// @param account The address to unfreeze
+    /// @dev Only callable by compliance officers
     function unfreezeAccount(address account) external onlyCompliance {
         frozenAccounts[account] = false;
         emit AccountUnfrozen(account);
     }
 
+    /// @notice Updates the whitelist status of an account
+    /// @param account The address to update
+    /// @param status The new whitelist status
+    /// @dev Only callable by compliance officers
     function updateWhitelist(address account, bool status) external onlyCompliance {
         whitelist[account] = status;
         emit WhitelistUpdated(account, status);
     }
 
+    /// @notice Updates the whitelist status for multiple accounts
+    /// @param accounts The array of addresses to update
+    /// @param status The new whitelist status for all accounts
+    /// @dev Only callable by compliance officers
     function batchUpdateWhitelist(address[] calldata accounts, bool status) external onlyCompliance {
         for (uint256 i = 0; i < accounts.length; i++) {
             whitelist[accounts[i]] = status;
@@ -197,6 +254,10 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         }
     }
 
+    /// @notice Updates the KYC verification status of an account
+    /// @param account The address to update
+    /// @param verified The new KYC verification status
+    /// @dev Only callable by compliance officers. Sets expiry if verified
     function updateKYC(address account, bool verified) external onlyCompliance {
         kycVerified[account] = verified;
         if (verified) {
@@ -205,17 +266,32 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         emit KYCUpdated(account, verified, kycExpiry[account]);
     }
 
+    /// @notice Freezes an asset to prevent certain operations
+    /// @param assetId The ID of the asset to freeze
+    /// @dev Only callable by compliance officers
     function freezeAsset(uint256 assetId) external onlyCompliance {
         require(assetMetadata[assetId].createdAt > 0, "Asset does not exist");
         assetMetadata[assetId].frozen = true;
     }
 
+    /// @notice Unfreezes a previously frozen asset
+    /// @param assetId The ID of the asset to unfreeze
+    /// @dev Only callable by compliance officers
     function unfreezeAsset(uint256 assetId) external onlyCompliance {
         require(assetMetadata[assetId].createdAt > 0, "Asset does not exist");
         assetMetadata[assetId].frozen = false;
     }
 
     // View functions
+    /// @notice Gets the metadata for a specific asset
+    /// @param assetId The ID of the asset to query
+    /// @return ipfsCid The IPFS content identifier
+    /// @return name The asset name
+    /// @return description The asset description
+    /// @return valuation The asset valuation in USD cents
+    /// @return createdAt The timestamp when the asset was created
+    /// @return merkleRoot The merkle root for attestations
+    /// @return frozen Whether the asset is frozen
     function getAssetMetadata(uint256 assetId) external view returns (
         string memory ipfsCid,
         string memory name,
@@ -237,10 +313,20 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         );
     }
 
+    /// @notice Gets the number of attestations for a specific asset
+    /// @param assetId The ID of the asset to query
+    /// @return The number of attestations
     function getAttestationCount(uint256 assetId) external view returns (uint256) {
         return assetAttestations[assetId].length;
     }
 
+    /// @notice Gets a specific attestation for an asset
+    /// @param assetId The ID of the asset
+    /// @param index The index of the attestation to retrieve
+    /// @return documentHash The hash of the attestation document
+    /// @return attestor The address of the attestor
+    /// @return timestamp The timestamp of the attestation
+    /// @return ipfsCid The IPFS content identifier for the attestation
     function getAttestation(uint256 assetId, uint256 index) external view returns (
         bytes32 documentHash,
         address attestor,
@@ -257,6 +343,11 @@ contract RWAAssetToken is ERC20, Ownable, AccessControl {
         );
     }
 
+    /// @notice Checks if a transfer is allowed between two addresses
+    /// @param from The sender address
+    /// @param to The recipient address
+    /// @param amount The amount to transfer
+    /// @return Whether the transfer is allowed
     function isTransferAllowed(address from, address to, uint256 amount) external view returns (bool) {
         return !frozenAccounts[from] &&
                !frozenAccounts[to] &&

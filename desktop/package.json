@@ -1,7 +1,7 @@
 {
-  "name": "lrcn-desktop",
+  "name": "defiflow-desktop",
   "version": "1.0.0",
-  "description": "LRCN DeFi Desktop Application",
+  "description": "DeFiFlow - Where Real Assets Meet Smart DeFi",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -15,8 +15,8 @@
     "electron-builder": "^24.0.0"
   },
   "build": {
-    "appId": "com.lrcn.defi",
-    "productName": "LRCN DeFi",
+    "appId": "com.defiflow.defi",
+    "productName": "DeFiFlow",
     "directories": {
       "output": "../../dist/desktop"
     },

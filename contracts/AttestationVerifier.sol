@@ -48,17 +48,23 @@ contract AttestationVerifier is Ownable, AccessControl {
     event MerkleRootUpdated(bytes32 indexed rootHash, bytes32 merkleRoot);
     event AttestorStatusChanged(address indexed attestor, bool status);
 
+    /// @notice Contract constructor
+    /// @dev Grants admin, attestor, and verifier roles to the deployer
     constructor() Ownable(msg.sender) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ATTESTOR_ROLE, msg.sender);
         _grantRole(VERIFIER_ROLE, msg.sender);
     }
 
+    /// @notice Modifier to restrict access to verified attestors
+    /// @dev Reverts if caller is not a verified attestor or doesn't have ATTESTOR_ROLE
     modifier onlyVerifiedAttestor() {
         require(verifiedAttestors[msg.sender] || hasRole(ATTESTOR_ROLE, msg.sender), "Not a verified attestor");
         _;
     }
 
+    /// @notice Modifier to restrict access to verifiers
+    /// @dev Reverts if caller doesn't have VERIFIER_ROLE
     modifier onlyVerifier() {
         require(hasRole(VERIFIER_ROLE, msg.sender), "Not a verifier");
         _;

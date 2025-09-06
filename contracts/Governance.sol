@@ -54,10 +54,20 @@ contract Governance is Ownable {
     event ProposalExecuted(uint256 indexed proposalId);
     event ProposalCanceled(uint256 indexed proposalId);
 
+    /// @notice Contract constructor
+    /// @param _votingToken The address of the token used for voting
+    /// @dev Initializes the governance contract with voting token
     constructor(address _votingToken) Ownable(msg.sender) {
         votingToken = IERC20(_votingToken);
     }
 
+    /// @notice Creates a new governance proposal
+    /// @param description A description of the proposed change
+    /// @param target The contract address to call if proposal passes
+    /// @param data The encoded function call data
+    /// @param value The amount of ETH to send with the call
+    /// @return The ID of the created proposal
+    /// @dev Requires proposer to have sufficient voting power
     function proposeChange(
         string memory description,
         address target,
@@ -86,6 +96,10 @@ contract Governance is Ownable {
         return proposalId;
     }
 
+    /// @notice Casts a vote on a governance proposal
+    /// @param proposalId The ID of the proposal to vote on
+    /// @param support Whether to vote for (true) or against (false) the proposal
+    /// @dev Voter's token balance determines voting power
     function vote(uint256 proposalId, bool support) external {
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp >= proposal.startTime, "Voting not started");
@@ -112,6 +126,9 @@ contract Governance is Ownable {
         emit VoteCast(proposalId, msg.sender, support, voterBalance);
     }
 
+    /// @notice Executes a passed governance proposal
+    /// @param proposalId The ID of the proposal to execute
+    /// @dev Requires proposal to have passed and voting period to have ended
     function executeProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp > proposal.endTime, "Voting not ended");
@@ -129,6 +146,9 @@ contract Governance is Ownable {
         emit ProposalExecuted(proposalId);
     }
 
+    /// @notice Cancels a governance proposal
+    /// @param proposalId The ID of the proposal to cancel
+    /// @dev Can only be called by the proposer or contract owner
     function cancelProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(msg.sender == proposal.proposer || msg.sender == owner(), "Not authorized");
@@ -139,6 +159,17 @@ contract Governance is Ownable {
         emit ProposalCanceled(proposalId);
     }
 
+    /// @notice Gets detailed information about a proposal
+    /// @param proposalId The ID of the proposal to query
+    /// @return id The proposal ID
+    /// @return proposer The address that created the proposal
+    /// @return description The proposal description
+    /// @return startTime The timestamp when voting started
+    /// @return endTime The timestamp when voting ends
+    /// @return forVotes The number of votes in favor
+    /// @return againstVotes The number of votes against
+    /// @return executed Whether the proposal has been executed
+    /// @return canceled Whether the proposal has been canceled
     function getProposal(uint256 proposalId) external view returns (
         uint256 id,
         address proposer,
@@ -164,11 +195,19 @@ contract Governance is Ownable {
         );
     }
 
+    /// @notice Gets voting information for a specific voter on a proposal
+    /// @param proposalId The ID of the proposal
+    /// @param voter The address of the voter
+    /// @return hasVoted Whether the voter has cast a vote
+    /// @return support Whether the voter voted for (true) or against (false)
+    /// @return votes The number of votes cast by the voter
     function getVote(uint256 proposalId, address voter) external view returns (bool, bool, uint256) {
         Vote storage userVote = votes[proposalId][voter];
         return (userVote.hasVoted, userVote.support, userVote.votes);
     }
 
+    /// @notice Gets the total number of proposals created
+    /// @return The total count of proposals
     function getProposalCount() external view returns (uint256) {
         return proposalCount;
     }

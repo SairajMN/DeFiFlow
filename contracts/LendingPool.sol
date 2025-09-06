@@ -71,6 +71,10 @@ contract LendingPool is Ownable, EIP712 {
     bytes32 private constant TRANSFER_RWA_TYPEHASH = keccak256("TransferRWAAction(address to,uint256 amount,uint256 nonce,uint256 deadline)");
     bytes32 private constant BURN_RWA_TYPEHASH = keccak256("BurnRWAAction(address from,uint256 amount,uint256 nonce,uint256 deadline)");
 
+    /// @notice Contract constructor
+    /// @param _dusd The address of the DUSD token contract
+    /// @param _ratePerSecond The interest rate per second in ray units
+    /// @dev Initializes the lending pool with DUSD token and interest rate
     constructor(address _dusd, uint256 _ratePerSecond)
         Ownable(msg.sender)
         EIP712("LendingPool", "1")
@@ -80,6 +84,8 @@ contract LendingPool is Ownable, EIP712 {
         lastUpdate = block.timestamp;
     }
 
+    /// @notice Accrues interest and updates the index
+    /// @dev Updates the interest index based on time passed and rate
     function accrue() public {
         uint256 timePassed = block.timestamp - lastUpdate;
         if (timePassed > 0) {
@@ -91,6 +97,9 @@ contract LendingPool is Ownable, EIP712 {
         }
     }
 
+    /// @notice Deposits DUSD tokens into the lending pool
+    /// @param amount The amount of DUSD to deposit
+    /// @dev Transfers tokens from sender and updates scaled deposits
     function deposit(uint256 amount) public {
         accrue();
         dusd.safeTransferFrom(msg.sender, address(this), amount);
@@ -100,6 +109,9 @@ contract LendingPool is Ownable, EIP712 {
         emit Deposit(msg.sender, amount);
     }
 
+    /// @notice Withdraws DUSD tokens from the lending pool
+    /// @param amount The amount of DUSD to withdraw
+    /// @dev Updates scaled deposits and transfers tokens to sender
     function withdraw(uint256 amount) public {
         accrue();
         require(deposits[msg.sender] >= amount, "Insufficient balance");
@@ -110,6 +122,9 @@ contract LendingPool is Ownable, EIP712 {
         emit Withdraw(msg.sender, amount);
     }
 
+    /// @notice Previews the current balance of a user including accrued interest
+    /// @param user The address to query
+    /// @return The current balance including accrued interest
     function previewBalance(address user) public view returns (uint256) {
         uint256 timePassed = block.timestamp - lastUpdate;
         uint256 currentIndex = index;
@@ -121,6 +136,10 @@ contract LendingPool is Ownable, EIP712 {
     }
 
     // Delegated signing functions
+    /// @notice Executes a delegated deposit using EIP-712 signature
+    /// @param action The DepositAction struct containing deposit parameters
+    /// @param signature The EIP-712 signature from the depositor
+    /// @dev Validates signature and executes deposit on behalf of signer
     function executeDeposit(DepositAction calldata action, bytes calldata signature) external {
         require(block.timestamp <= action.deadline, "Signature expired");
         require(action.nonce == nonces[msg.sender], "Invalid nonce");
@@ -141,6 +160,10 @@ contract LendingPool is Ownable, EIP712 {
         emit Deposit(msg.sender, action.amount);
     }
 
+    /// @notice Executes a delegated withdrawal using EIP-712 signature
+    /// @param action The WithdrawAction struct containing withdrawal parameters
+    /// @param signature The EIP-712 signature from the withdrawer
+    /// @dev Validates signature and executes withdrawal on behalf of signer
     function executeWithdraw(WithdrawAction calldata action, bytes calldata signature) external {
         require(block.timestamp <= action.deadline, "Signature expired");
         require(action.nonce == nonces[msg.sender], "Invalid nonce");
@@ -163,6 +186,11 @@ contract LendingPool is Ownable, EIP712 {
     }
 
     // RWA Delegated Functions
+    /// @notice Executes a delegated RWA mint using EIP-712 signature
+    /// @param action The MintRWAAction struct containing mint parameters
+    /// @param signature The EIP-712 signature from the minter
+    /// @param rwaToken The address of the RWA token contract
+    /// @dev Validates signature and executes RWA mint on behalf of signer
     function executeMintRWA(MintRWAAction calldata action, bytes calldata signature, address rwaToken) external {
         require(block.timestamp <= action.deadline, "Signature expired");
         require(action.nonce == nonces[msg.sender], "Invalid nonce");
@@ -201,6 +229,11 @@ contract LendingPool is Ownable, EIP712 {
         require(success, "RWA mint failed");
     }
 
+    /// @notice Executes a delegated RWA transfer using EIP-712 signature
+    /// @param action The TransferRWAAction struct containing transfer parameters
+    /// @param signature The EIP-712 signature from the transferrer
+    /// @param rwaToken The address of the RWA token contract
+    /// @dev Validates signature and executes RWA transfer on behalf of signer
     function executeTransferRWA(TransferRWAAction calldata action, bytes calldata signature, address rwaToken) external {
         require(block.timestamp <= action.deadline, "Signature expired");
         require(action.nonce == nonces[msg.sender], "Invalid nonce");
@@ -229,6 +262,11 @@ contract LendingPool is Ownable, EIP712 {
         require(success, "RWA transfer failed");
     }
 
+    /// @notice Executes a delegated RWA burn using EIP-712 signature
+    /// @param action The BurnRWAAction struct containing burn parameters
+    /// @param signature The EIP-712 signature from the burner
+    /// @param rwaToken The address of the RWA token contract
+    /// @dev Validates signature and executes RWA burn on behalf of signer
     function executeBurnRWA(BurnRWAAction calldata action, bytes calldata signature, address rwaToken) external {
         require(block.timestamp <= action.deadline, "Signature expired");
         require(action.nonce == nonces[msg.sender], "Invalid nonce");

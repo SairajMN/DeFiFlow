@@ -41,4 +41,159 @@ describe("LendingPool", function () {
     await lendingPool.accrue();
     expect(await lendingPool.index()).to.be.gt(ethers.parseEther("1"));
   });
+
+  describe("Delegated Signing", function () {
+    it("should execute delegated deposit with valid signature", async function () {
+      const amount = ethers.parseEther("10");
+      const nonce = await lendingPool.nonces(user.address);
+      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600; // 1 hour from now
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "LendingPool",
+        version: "1",
+        chainId: 31337, // Hardhat network
+        verifyingContract: await lendingPool.getAddress()
+      };
+
+      const types = {
+        DepositAction: [
+          { name: 'amount', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      const message = {
+        amount: amount,
+        nonce: nonce,
+        deadline: deadline
+      };
+
+      const signature = await user.signTypedData(domain, types, message);
+
+      // Execute delegated deposit
+      await dusd.connect(user).approve(await lendingPool.getAddress(), amount);
+      await lendingPool.connect(user).executeDeposit(
+        { amount, nonce, deadline },
+        signature
+      );
+
+      expect(await lendingPool.deposits(user.address)).to.equal(amount);
+    });
+
+    it("should execute delegated withdraw with valid signature", async function () {
+      // First deposit some funds
+      await dusd.connect(user).approve(await lendingPool.getAddress(), ethers.parseEther("50"));
+      await lendingPool.connect(user).deposit(ethers.parseEther("50"));
+
+      const amount = ethers.parseEther("20");
+      const nonce = await lendingPool.nonces(user.address);
+      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "LendingPool",
+        version: "1",
+        chainId: 31337,
+        verifyingContract: await lendingPool.getAddress()
+      };
+
+      const types = {
+        WithdrawAction: [
+          { name: 'amount', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      const message = {
+        amount: amount,
+        nonce: nonce,
+        deadline: deadline
+      };
+
+      const signature = await user.signTypedData(domain, types, message);
+
+      // Execute delegated withdraw
+      await lendingPool.connect(user).executeWithdraw(
+        { amount, nonce, deadline },
+        signature
+      );
+
+      expect(await lendingPool.deposits(user.address)).to.equal(ethers.parseEther("30"));
+    });
+
+    it("should reject delegated transaction with invalid nonce", async function () {
+      const amount = ethers.parseEther("10");
+      const invalidNonce = 999; // Invalid nonce
+      const deadline = (await ethers.provider.getBlock('latest')).timestamp + 3600;
+
+      const domain = {
+        name: "LendingPool",
+        version: "1",
+        chainId: 31337,
+        verifyingContract: await lendingPool.getAddress()
+      };
+
+      const types = {
+        DepositAction: [
+          { name: 'amount', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      const message = {
+        amount: amount,
+        nonce: invalidNonce,
+        deadline: deadline
+      };
+
+      const signature = await user.signTypedData(domain, types, message);
+
+      await expect(
+        lendingPool.connect(owner).executeDeposit(
+          { amount, nonce: invalidNonce, deadline },
+          signature
+        )
+      ).to.be.revertedWith("Invalid nonce");
+    });
+
+    it("should reject delegated transaction with expired deadline", async function () {
+      const amount = ethers.parseEther("10");
+      const nonce = await lendingPool.nonces(user.address);
+      const expiredDeadline = (await ethers.provider.getBlock('latest')).timestamp - 3600; // Already expired
+
+      const domain = {
+        name: "LendingPool",
+        version: "1",
+        chainId: 31337,
+        verifyingContract: await lendingPool.getAddress()
+      };
+
+      const types = {
+        DepositAction: [
+          { name: 'amount', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      const message = {
+        amount: amount,
+        nonce: nonce,
+        deadline: expiredDeadline
+      };
+
+      const signature = await user.signTypedData(domain, types, message);
+
+      await expect(
+        lendingPool.connect(owner).executeDeposit(
+          { amount, nonce, deadline: expiredDeadline },
+          signature
+        )
+      ).to.be.revertedWith("Signature expired");
+    });
+  });
 });

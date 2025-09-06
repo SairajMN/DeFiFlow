@@ -24,18 +24,28 @@ contract RWARegistry is ERC20, Ownable {
     event CustodianAuthorized(address indexed custodian);
     event CustodianRevoked(address indexed custodian);
 
+    /// @notice Contract constructor
+    /// @dev Initializes ERC20 token with name "Real World Asset Token" and symbol "RWA"
     constructor() ERC20("Real World Asset Token", "RWA") Ownable(msg.sender) {}
 
+    /// @notice Modifier to restrict access to authorized custodians
+    /// @dev Reverts if caller is not an authorized custodian or contract owner
     modifier onlyAuthorizedCustodian() {
         require(authorizedCustodians[msg.sender] || msg.sender == owner(), "Not authorized custodian");
         _;
     }
 
+    /// @notice Authorizes a custodian to mint RWAs
+    /// @param custodian The address to authorize as a custodian
+    /// @dev Only callable by contract owner
     function authorizeCustodian(address custodian) external onlyOwner {
         authorizedCustodians[custodian] = true;
         emit CustodianAuthorized(custodian);
     }
 
+    /// @notice Revokes custodian authorization
+    /// @param custodian The address to revoke authorization from
+    /// @dev Only callable by contract owner
     function revokeCustodian(address custodian) external onlyOwner {
         authorizedCustodians[custodian] = false;
         emit CustodianRevoked(custodian);
